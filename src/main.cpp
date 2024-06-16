@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
     input_file.seekg(0, std::ios_base::beg);
 
     std::vector<unsigned char> bytes;
+    bytes.resize(input_file_size);
     input_file.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
 
     std::string identifier = replace_dot_with_underscore(input_filename);
