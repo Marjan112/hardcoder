@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 std::string replace_dot_with_underscore(std::string filename) {
     for(size_t i = 0; i < filename.size(); ++i) if(filename[i] == '.') filename[i] = '_';
@@ -37,8 +38,8 @@ int main(int argc, char** argv) {
     size_t input_file_size = input_file.tellg();
     input_file.seekg(0, std::ios_base::beg);
 
-    unsigned char bytes[input_file_size];
-    input_file.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+    std::vector<unsigned char> bytes;
+    input_file.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
 
     std::string identifier = replace_dot_with_underscore(input_filename);
 
