@@ -1,9 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <filesystem>
 
-std::string replace_dot_with_underscore(std::string filename) {
-    for(size_t i = 0; i < filename.size(); ++i) if(filename[i] == '.') filename[i] = '_';
+std::string create_valid_identifier(std::string filename) {
+    if(isdigit(filename[0])) filename.insert(filename.begin(), '_');
+    for(size_t i = 0; i < filename.size(); ++i) if(filename[i] == '.' || filename[i] == '-') filename[i] = '_';
     return filename;
 }
 
@@ -28,10 +30,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    const std::string input_filename = argv[2];
-    std::ifstream input_file(input_filename, std::ios::binary | std::ios::ate);
+    const std::string input_filepath = argv[2];
+    std::ifstream input_file(input_filepath, std::ios::binary | std::ios::ate);
     if(input_file.fail()) {
-        std::cerr << "Could not open file \"" << input_filename << "\"\n";
+        std::cerr << "Could not open file \"" << input_filepath << "\"\n";
         return 1;
     }
 
@@ -42,7 +44,9 @@ int main(int argc, char** argv) {
     bytes.resize(input_file_size);
     input_file.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
 
-    std::string identifier = replace_dot_with_underscore(input_filename);
+    std::string input_filename = std::filesystem::path(input_filepath).filename().string();
+
+    std::string identifier = create_valid_identifier(input_filename);
 
     std::ofstream output_file(input_filename + ".h");
     output_file << "#ifndef " << identifier << "_H\n";
@@ -53,8 +57,7 @@ int main(int argc, char** argv) {
     
     for(size_t i = 0; i < input_file_size; ++i) {
         output_file << "0x" << std::hex << static_cast<int>(bytes[i]);
-        if(i != input_file_size - 1) output_file << ", ";
-        if((i + 1) % 12 == 0) output_file << "\n";
+        if(i != input_file_size - 1) output_file << ",";
     }
 
     output_file << "\n};\n\n" << std::dec;
