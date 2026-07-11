@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Usage:
     hardcoder <option> <inputfile> <outputfile>
@@ -8,7 +7,7 @@ Options:
     c   - Hardcode in C
     cxx - Hardcode in C++
 """
-
+import argparse
 import sys
 from pathlib import Path
 
@@ -19,7 +18,7 @@ def create_valid_identifier(filename: str) -> str:
     if filename[0].isdigit():
         filename = "_" + filename
 
-    return "".join("_" if ch in ".-" else ch for ch in filename)
+    return "".join("_" if ch in ".- " else ch for ch in filename)
 
 
 def generate_header(data: bytes, identifier: str, option: str) -> str:
@@ -33,6 +32,7 @@ def generate_header(data: bytes, identifier: str, option: str) -> str:
     lines.append("/* Embedded data */")
     lines.append(f"{keyword} unsigned char {identifier}[] = {{")
 
+    # 16 bytes per line, formatted as "0xNN"
     hex_bytes = [f"0x{b:02x}" for b in data]
     for i in range(0, len(hex_bytes), 16):
         chunk = hex_bytes[i:i + 16]
@@ -53,20 +53,36 @@ def generate_header(data: bytes, identifier: str, option: str) -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(
+        prog="hardcoder.py",
+        description="Embed a binary file's contents into a C/C++ header file.",
+        add_help=True,
+    )
+    parser.add_argument("option", help="c - Hardcode in C, cxx - Hardcode in C++")
+    parser.add_argument("inputfile", help="Path to the input binary file")
+    parser.add_argument("outputfile", help="Path to the generated header file")
+    parser.add_argument(
+        "-p", "--prefix",
+        default="",
+        help="Optional prefix to prepend to the generated variable/identifier names",
+    )
+
     if len(sys.argv) < 4:
-        print(f"Usage: {sys.argv[0]} <option> <inputfile> <outputfile>")
+        parser.print_usage()
         print("Options:")
         print("\tc   - Hardcode in C")
         print("\tcxx - Hardcode in C++")
         return 1
 
-    option = sys.argv[1].lower()
+    args = parser.parse_args()
+
+    option = args.option.lower()
     if option not in ("c", "cxx"):
         print(f'Invalid option "{option}"', file=sys.stderr)
         return 1
 
-    input_filepath = Path(sys.argv[2])
-    output_filepath = Path(sys.argv[3])
+    input_filepath = Path(args.inputfile)
+    output_filepath = Path(args.outputfile)
 
     try:
         data = input_filepath.read_bytes()
@@ -75,6 +91,8 @@ def main() -> int:
         return 1
 
     identifier = create_valid_identifier(input_filepath.name)
+    if args.prefix:
+        identifier = create_valid_identifier(args.prefix) + "_" + identifier
     header_text = generate_header(data, identifier, option)
 
     output_filepath.parent.mkdir(parents=True, exist_ok=True)
